@@ -1,0 +1,108 @@
+\documentclass[a4paper,12pt,notitlepage]{article}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage{graphics}
+\usepackage{times}
+\usepackage{ucs}
+\usepackage{url}
+
+
+
+\title{Síntese de Artigo: \textit{Atomicity and Isolation for Transactional Processes}}
+
+
+\author{Rodrigo L. M. Flores}
+
+
+\date{\today}
+
+
+
+\begin{document}
+
+
+\maketitle
+
+\section{Introdução}
+
+Processos são sequências bem definidas de passos computacionais executadas de uma maneira coordenada. Um exemplo são os processos de negócios, que representam passos de que envolvem uma ou mais organizações necesárias para se cumprir uma determinada tarefa. Exemplos de processo são: abrir um conta em banco, fazer uma compra em um \textit{e-commerce}, fazer uma reserva de uma passagem aérea, entre outros. 
+
+Uma grande vantagem de se utilizar processos é que estes mantém explícitas as lógicas de negócio que tradicionalmente eram escritas em \textit{C} ou \textit{C++}  e que são difíceis de se manter, de se evoluir e de se compreender. Utiizando os processos, as informações são escritas em um nível mais alto, facilitando a manutenção, evolução e compreensão do mesmo. 
+
+Diferentemente de uma transação, que é atômica e que só pode ser totalmente revertida ou terminada (com um commit),  um processo pode fazer reversões (\textit{roll-back}) parciais ou seguir um caminho possível. Outra diferença entre transações e processos é que os processos podem ter dependências entre suas etapas e sua execução só pode acontecer de uma determinada ordem. 
+
+No artigo, é apresentado um modelo unificado para controle de concorrência e recuperação para processos transacionais que lida com todos esses problemas.
+
+\newpage
+
+\section{Motivação}
+
+Para ilustrar o assunto, será apresentado um exemplo de um processo de pagamento em uma loja de comércio eletrônico que vende seus arquivos digitalmente. Seus passos, que chamaremos de atividades, tem propriedades transacionais e que podem incluir pontos ``sem volta'', que após serem concluídos, o processo não pode mais voltar e deve assim prosseguir para o final e se alguma atividade após essa falhar, deve haver uma nova tentativa, ou um caminho que conduza o processo para o seu final. 
+
+O exemplo consiste inicialmente em receber informações do pagamento, após isso
+se verifica a validade das informações de pagamento e a seguir o sistema recebe do vendedor a chave que descriptografa os arquivos a serem entregues. 
+A partir daí temos um verificador de time-out, que escreve um registro dos recibos de pagamento. Em caso que o verificador ocorreu sem problemas, entregamos a chave criptográfica ao comprador, transferimos o dinheiro do pagamento e enviamos a confirmação ao vendedor (isto é, a transação ocorreu com sucesso). Em caso de problema no verificador, notificamos o comprador, depois o banco e o vendedor (a transação foi abortada). 
+
+Neste exemplo, temos alguns pontos ``sem volta'', como a verificação de time-out (após escrever um registro do recibo) e a entrega das chaves ao comprador. Perceba também que a etapa de transferência é sempre garantida, pois verificamos anteriormente a validade do pagamento. 
+
+\newpage
+
+\section{Modelo}
+
+Processos são normalmente vistos como uma coleção de atividades as quais são, por definição, atômicas e podem ser realizadas ou não com sucesso. Atividades (denotadas por $a$) podem ou não ter uma outra atividade (denotadas aqui por $a^{-1}$) tal que a execução das duas não causa nenhum efeito, ou seja a atividade $a^{-1}$ compensa a atividade $a$. Se uma atividade não pode
+ser compensada, ela é chamada então de pivô. Quando um pivô executado, o processo deve prosseguir, pois não há como compensar a execução do pivô.
+
+Outro tipo possível de atividade é chamada de \textit{retriable} (baseada em tentativas). Este tipo de atividade garante que após um número finito de tentativas, haverá um \textit{commit} e em todas anteriores nenhum \textit{commit} aconteceu.
+
+Nada impede que um processo realize duas atividades concorrentemente, porém deve haver indicações se uma atividade deve acontecer antes que outra (ordem forte). Pode também acontecer de uma atividade (que chamaremos de $a$) poder ser executada concorrentemente com outra (que chamaremos de $b$), porém o resultado esperado deve ser equivalente ao de $b$ acontecer depos de $a$ (ordem fraca).
+
+\subsection{Estrutura do processo}
+
+O primeiro pivô é chamado de pivô primário e nunca são constituídos de mais de uma atividade, o que nos mostra que jamais outra atividade pode ser executada concorrentemente com o pivô. Após o pivô deve sempre haver uma árvore, chamada de árvore de finalização concreta, consistindo apenas de atividades \textit{retriable}. Em geral um pivô tem filhos nos quais esta mesma estrutura que definimos aqui vale recursivamente. 
+
+Um programa de processo é constituído de:
+\begin{itemize}
+  \item Um conjunto de nós, que chamaremos de $N$, de atividades. Um nó pode ser constituído de mais de uma atividades, desde que esta seja compensável. Se o nó for pivô ou \textit{retriable}, ele deve ser \textit{singleton}, isto é, constituído apenas de uma atividade.
+  \item Um conjunto de arestas $E$, que juntamente com o conjunto de nós N, formam um árvore. Cada aresta $e$, representa uma ordem forte.
+  \item As ordens (parciais) fortes.
+  \item As ordens (parciais) fracas
+  \item Os nós pivôs
+  \item As preferências dos pivôs (ou seja, o que fazer após cada pivô). O último item de preferência de cada pivô deve ser sempre uma árvore de finalização concreta.
+\end{itemize}
+  
+No exemplo mostrado na seção anterior, os nós pivôs são: 
+\begin{itemize}  
+  \item Nó de verificação de \textit{time-out}. 
+  \item Nó de transferência das chaves.
+\end{itemize}
+
+Repare que há dois caminhos a se seguir após a verificação de \textit{time-out}: o de aborto e o de sucesso. No nó de transferência da chave, a decisão é a mesma. A preferência é o nó de sucesso sobre a árvore 
+de finalização concreta (aborto).
+
+\subsection{Estados de processos}
+
+Um processo pode ter vários estados:
+
+\begin{itemize}
+  \item Uma vez iniciado, o estado é executando;
+  \item Antes do pivô primário, um aborto de alguma atividade compensável muda o estado para abortando;
+  \item Após compensar todas as atividades, o processo é determinado abortado;
+  \item O commit de um pivô, muda o estado de executando para terminando. O aborto de qualquer estado após o pivô, faz ele tentar a próxima. Então o estado deve apontar qual é a alternativa que está sendo executada.
+  \item Se uma alternativa termina, o estado final é chamado de terminado (\textit{commited})
+\end{itemize}
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+\end{document}
