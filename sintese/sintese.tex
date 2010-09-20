@@ -38,13 +38,14 @@ No artigo, é apresentado um modelo unificado para controle de concorrência e r
 
 \section{Motivação}
 
-Para ilustrar o assunto, será apresentado um exemplo de um processo de pagamento em uma loja de comércio eletrônico que vende seus arquivos digitalmente. Seus passos, que chamaremos de atividades, tem propriedades transacionais e que podem incluir pontos ``sem volta'', que após serem concluídos, o processo não pode mais voltar e deve assim prosseguir para o final e se alguma atividade após essa falhar, deve haver uma nova tentativa, ou um caminho que conduza o processo para o seu final. 
+Para ilustrar o assunto, será apresentado um exemplo de um processo de pagamento em uma loja de comércio eletrônico que vende seus arquivos digitalmente. Seus passos, que chamaremos de atividades, tem propriedades transacionais e que podem incluir pontos ``sem volta'', que após serem concluídos, o processo não pode mais voltar e deve assim prosseguir para o final e se alguma atividade após essa falhar, deve haver uma nova tentativa, ou um caminho que conduza o processo para o seu final. Isso é um contraponto ao modelo já existente, baseado em apenas estados \textit{abort} e aos \textit{commits} e transações atômicas e isoladas. 
 
 O exemplo consiste inicialmente em receber informações do pagamento, após isso
 se verifica a validade das informações de pagamento e a seguir o sistema recebe do vendedor a chave que descriptografa os arquivos a serem entregues. 
 A partir daí temos um verificador de time-out, que escreve um registro dos recibos de pagamento. Em caso que o verificador ocorreu sem problemas, entregamos a chave criptográfica ao comprador, transferimos o dinheiro do pagamento e enviamos a confirmação ao vendedor (isto é, a transação ocorreu com sucesso). Em caso de problema no verificador, notificamos o comprador, depois o banco e o vendedor (a transação foi abortada). 
 
 Neste exemplo, temos alguns pontos ``sem volta'', como a verificação de time-out (após escrever um registro do recibo) e a entrega das chaves ao comprador. Perceba também que a etapa de transferência é sempre garantida, pois verificamos anteriormente a validade do pagamento. 
+
 
 \newpage
 
@@ -78,7 +79,7 @@ No exemplo mostrado na seção anterior, os nós pivôs são:
 \end{itemize}
 
 Repare que há dois caminhos a se seguir após a verificação de \textit{time-out}: o de aborto e o de sucesso. No nó de transferência da chave, a decisão é a mesma. A preferência é o nó de sucesso sobre a árvore 
-de finalização concreta (aborto).
+de finalização concreta (aborto). Os estados \textit{retriable} são: o estado de recebimentos das chaves pelos vendedores, envio da confirmação para os vendedores em caso de commit e a notificação aos vendedores em caso de falha. 
 
 \subsection{Estados de processos}
 
@@ -92,6 +93,11 @@ Um processo pode ter vários estados:
   \item Se uma alternativa termina, o estado final é chamado de terminado (\textit{commited})
 \end{itemize}
 
+Repare que a sequência de execução de um processo não é necessariamente um caminho na árvore, pois podem haver tentativas e compensações. O efeito atual de um projeto (isto é, todos os itens que executaram corretamente e não foram compensados) é um caminho na árvore.
+
+
+
+
 \newpage
 
 \section{Conclusão}
@@ -99,7 +105,7 @@ Um processo pode ter vários estados:
 Aplicações grandes normalmente integram muitos componentes independentes e distribuídos (que podem involver um banco de dados local e uma integração com web-services de banco no caso do \textit{e-commerce}) ao invés de depender de 
 somente um banco de dados local. O desenvolvimento destas aplicações deve levar em conta não somente os passos computacionais de um processo, mas sim a união de todos os passos de uma maneira coerente. 
 
-Utilizar processos permite um nível maior de especificação, que torna a manutenção, compreensão e evolução mais simples de serem realizadas. A abordagem dada aos processos, permite que eles sempre terminem, seja com um aborto que apenas faça a compensação ou com um commit que termine a execução com sucesso. Generalizamos então a questão de atomicidade do processo. Embora nem sempre ele possa ser apagado (se ele passou pelo pivô ele foi necessariamente registrado). E, diferentemente de outras abordagems, cobrimos tanto a atomicidade como o isolamento fazendo o controle de concorrência e a recuperação no nível adequado, o escalonamento do procesos.
+Utilizar processos permite um nível maior de especificação, que torna a manutenção, compreensão e evolução mais simples de serem realizadas. A abordagem dada aos processos, permite que eles sempre terminem, seja com um aborto que apenas faça a compensação ou com um commit que termine a execução com sucesso. Generalizamos então a questão de atomicidade do processo. Embora nem sempre ele possa ser apagado (se ele passou pelo pivô ele foi necessariamente registrado). E, diferentemente de outras abordagems, cobrimos tanto a atomicidade como o isolamento fazendo o controle de concorrência e a recuperação no nível adequado, o escalonamento do processos.
 
 
  
