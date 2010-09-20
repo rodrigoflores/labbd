@@ -92,6 +92,14 @@ Um processo pode ter vários estados:
   \item Se uma alternativa termina, o estado final é chamado de terminado (\textit{commited})
 \end{itemize}
 
+\newpage
+
+\section{Conclusão}
+
+Aplicações grandes normalmente integram muitos componentes independentes e distribuídos (que podem involver um banco de dados local e uma integração com web-services de banco no caso do \textit{e-commerce}) ao invés de depender de 
+somente um banco de dados local. O desenvolvimento destas aplicações deve levar em conta não somente os passos computacionais de um processo, mas sim a união de todos os passos de uma maneira coerente. 
+
+Utilizar processos permite um nível maior de especificação, que torna a manutenção, compreensão e evolução mais simples de serem realizadas. A abordagem dada aos processos, permite que eles sempre terminem, seja com um aborto que apenas faça a compensação ou com um commit que termine a execução com sucesso. Generalizamos então a questão de atomicidade do processo. Embora nem sempre ele possa ser apagado (se ele passou pelo pivô ele foi necessariamente registrado). E, diferentemente de outras abordagems, cobrimos tanto a atomicidade como o isolamento fazendo o controle de concorrência e a recuperação no nível adequado, o escalonamento do procesos.
 
 
  
